@@ -31,6 +31,12 @@ typedef u_int64_t uint64_t;
 #ifndef uint32_t
 typedef u_int32_t uint32_t;
 #endif
+#ifndef uint16_t
+typedef u_int16_t uint16_t;
+#endif
+#ifndef uint8_t
+typedef u_int8_t uint8_t;
+#endif
 
 // This structure is returned by fs_readdir to provide the caller with information
 // about each file as it iterates through a directory
@@ -85,6 +91,39 @@ struct fs_stat
 	};
 
 int fs_stat(const char *path, struct fs_stat *buf);
+
+
+typedef struct {
+
+} bitV_t;
+
+
+typedef struct {
+	time_t dateTimeCr;		// Date and Time the file was created
+	time_t dateTimeMd;		// Date and Time the file was last modified
+	uint64_t location;		// LBA of this file's first block on disk
+	uint32_t size;			// Size of the file
+	char name[35];			// Name and extension, if applicable, delimited by '.'
+	uint8_t attr;			// Attributes
+} dirEnt_t;
+
+
+typedef struct {
+	uint32_t blockSize;		// Number of bytes per block
+	uint32_t numBlocks;		// Number of blocks on this volume
+	uint32_t resBlocks;		// Number of blocks used by VCB and FreeMap
+	uint64_t freeMapAddr;	// LBA of free-space bitmap
+	uint32_t mapSize;		// Number of blocks freeMap occupies
+	uint64_t nextFree;		// Index of the next known free block
+	uint64_t rootAddr;		// LBA of the root directory
+	uint32_t rootSize;		// Number of blocks the root directory occupies
+	uint64_t ourSig;		// Signature for our filesystem
+
+	/* These are pointers to be used during operation and must be initialized on
+	 each run. The values stored on disk will not be valid */
+	bitV_t* freeMap;		// Pointer to freeMap
+	dirEnt_t* root;			// Pointer to root directory
+} vcb_t;
 
 #endif
 
