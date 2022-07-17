@@ -36,17 +36,17 @@
 #define DIRMAX_LEN		4096
 
 /****   SET THESE TO 1 WHEN READY TO TEST THAT COMMAND ****/
-#define CMDLS_ON	1
-#define CMDCP_ON	1
-#define CMDMV_ON	1
-#define CMDMD_ON	1
-#define CMDRM_ON	1
-#define CMDCP2L_ON	1
-#define CMDCP2FS_ON	1
-#define CMDCD_ON	1
-#define CMDPWD_ON	1
-#define CMDTOUCH_ON	1
-#define CMDCAT_ON	1
+#define CMDLS_ON	0
+#define CMDCP_ON	0
+#define CMDMV_ON	0
+#define CMDMD_ON	0
+#define CMDRM_ON	0
+#define CMDCP2L_ON	0
+#define CMDCP2FS_ON	0
+#define CMDCD_ON	0
+#define CMDPWD_ON	0
+#define CMDTOUCH_ON	0
+#define CMDCAT_ON	0
 
 
 typedef struct dispatch_t
@@ -77,8 +77,8 @@ dispatch_t dispatchTable[] = {
 	{"mv", cmd_mv, "Moves a file - source dest"},
 	{"md", cmd_md, "Make a new directory"},
 	{"rm", cmd_rm, "Removes a file or directory"},
-        {"touch",cmd_touch, "Touches/Creates a file"},
-        {"cat", cmd_cat, "Limited version of cat that displace the file to the console"},
+    {"touch",cmd_touch, "Touches/Creates a file"},
+    {"cat", cmd_cat, "Limited version of cat that displace the file to the console"},
 	{"cp2l", cmd_cp2l, "Copies a file from the test file system to the linux file system"},
 	{"cp2fs", cmd_cp2fs, "Copies a file from the Linux file system to the test file system"},
 	{"cd", cmd_cd, "Changes directory"},
