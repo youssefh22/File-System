@@ -25,6 +25,8 @@
 #define FT_DIRECTORY DT_DIR
 #define FT_LINK	DT_LNK
 
+#define OUR_SIG	0x796F616C6A6F616E
+
 #ifndef uint64_t
 typedef u_int64_t uint64_t;
 #endif
@@ -93,37 +95,55 @@ struct fs_stat
 int fs_stat(const char *path, struct fs_stat *buf);
 
 
-typedef struct {
 
-} bitV_t;
+/* Start of our additions to this file */
 
 
-typedef struct {
-	time_t dateTimeCr;		// Date and Time the file was created
-	time_t dateTimeMd;		// Date and Time the file was last modified
-	uint64_t location;		// LBA of this file's first block on disk
-	uint32_t size;			// Size of the file
-	char name[35];			// Name and extension, if applicable, delimited by '.'
-	uint8_t attr;			// Attributes
+typedef struct {	// Directory Entry Structure
+	time_t 		dateTimeCr;		// Date and Time the file was created
+	time_t 		dateTimeMd;		// Date and Time the file was last modified
+	uint64_t 	location;		// LBA of this file's first block on disk
+	uint32_t 	size;			// If a directory, number of used entries, otherwise file size
+	char 		name[35];		// Name and extension (if applicable) delimited by a '.'
+	uint8_t 	attr;			// Attributes
 } dirEnt_t;
 
+// Attribute Masks for Directory Entries
+#define ROOT_MASK  0b00001111	// This dirEnt is the root directory
+#define ISDIR_MASK 0b00000001	// This dirEnt is a directory
 
-typedef struct {
-	uint32_t blockSize;		// Number of bytes per block
-	uint32_t numBlocks;		// Number of blocks on this volume
-	uint32_t resBlocks;		// Number of blocks used by VCB and FreeMap
-	uint64_t freeMapAddr;	// LBA of free-space bitmap
-	uint32_t mapSize;		// Number of blocks freeMap occupies
-	uint64_t nextFree;		// Index of the next known free block
-	uint64_t rootAddr;		// LBA of the root directory
-	uint32_t rootSize;		// Number of blocks the root directory occupies
-	uint64_t ourSig;		// Signature for our filesystem
+typedef struct vcb_t {	// VCB structure
+	uint64_t 	blockSize;		// Number of bytes per block
+	uint64_t 	numBlocks;		// Number of blocks on this volume
+	uint64_t 	freeMapAddr;	// LBA of free-space bitmap
+	uint64_t 	freeLen;		// Number of bytes in freeMap
+	uint32_t 	mapBlocks;		// Number of blocks the free-space map uses
+	uint64_t 	rootAddr;		// LBA of the root directory
+	uint32_t 	rootSize;		// Number of blocks the root directory occupies
+	uint64_t 	ourSig;			// Signature for our filesystem
 
 	/* These are pointers to be used during operation and must be initialized on
 	 each run. The values stored on disk will not be valid */
-	bitV_t* freeMap;		// Pointer to freeMap
-	dirEnt_t* root;			// Pointer to root directory
+	uint8_t* 	freeMap;		// Pointer to the freeMap
+	dirEnt_t* 	root;			// Pointer to the root directory
+	dirEnt_t* 	cwd;			/* Pointer to the current working directory, set
+								   to the root directory on startup */
 } vcb_t;
 
+
+
+// Free Space functions
+
+// Set bit in byte to 1
+void setBit(uint8_t* byte, uint8_t bit);
+
+// Set bit in byte to 0
+void unsetBit(uint8_t* byte, uint8_t bit);
+
+// Return 1 if bit is 0, 0 if bit is 1
+int isBitFree(uint8_t byte, uint8_t bit);
+
+// Return first LBA of contiguous free blocks, 0 if failed
+uint64_t allocBlocks(int count);
 #endif
 
