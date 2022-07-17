@@ -102,32 +102,38 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 			perror("vcb->root");
 			return err;
 		}
-		// Allocate for cwd
-		vcb->cwd = malloc(vcb->rootSize * vcb->blockSize);
-		if(vcb->cwd == NULL) {
-			err = errno;
-			perror("vcb->cwd");
-			return err;
-		}
-		// LBAread the root direcoty on disk into vcb->root
-		ret = LBAread(vcb->root, vcb->rootSize, vcb->rootAddr);
-		if(ret != vcb->rootSize) {
-			err = errno;
-			perror("vcb->cwd");
-			return err;
-		}
+		// Set vcb->cwd to the root directory
+		vcb->cwd = vcb->root;
+
+		// vcb->cwd = malloc(vcb->rootSize * vcb->blockSize);
+		// if(vcb->cwd == NULL) {
+		// 	err = errno;
+		// 	perror("vcb->cwd");
+		// 	return err;
+		// }
+		// // LBAread the root direcoty on disk into vcb->root
+		// ret = LBAread(vcb->cwd, vcb->rootSize, vcb->rootAddr);
+		// if(ret != vcb->rootSize) {
+		// 	err = errno;
+		// 	perror("vcb->cwd");
+		// 	return err;
+		// }
 	}
 	// If our signature is not present or correct, we must initialize the volume
 	else {
 		// Initialize vcb values
 		vcb->blockSize = blockSize;
 		vcb->numBlocks = numberOfBlocks;
+
 		// freeMap will start after the VCB, on block 1
 		vcb->freeMapAddr = 1;
+
 		// Using a byte array for freeMap, freeLen will be number of bytes
 		vcb->freeLen = (numberOfBlocks + 7) / 8;
+
 		// Calculate mapBlocks, the number of blocks the freeMap needs
 		vcb->mapBlocks = (vcb->freeLen + blockSize - 1) / blockSize;
+
 		// Initialize the freeSpace now that the above values have been set
 		int ret = initFreeSpace();
 		if(ret != 1) {
@@ -135,10 +141,13 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 			return -1;
 		}
 		
+
 		// The root directory will be located after the freeMap
 		vcb->rootAddr = vcb->freeMapAddr + vcb->mapBlocks;
+
 		// Will use 1 block for the root directory for now
 		vcb->rootSize = 1;
+
 		// Can now initialize the root directory
 		ret = initRoot();
 		if(ret != 1) {
@@ -165,6 +174,9 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 void exitFileSystem ()
 	{
 	printf ("System exiting\n");
+	free(vcb->root);
+	free(vcb->freeMap);
+	free(vcb);
 	}
 
 
@@ -377,6 +389,14 @@ uint64_t allocBlocks(int count) {
 			// Get the bit we need
 			uint8_t bit = (bitNum + i) % 8;
 			setBit(&vcb->freeMap[index], bit);
+		}
+
+		// Write the updated freeMap to disk
+		int ret = LBAwrite(vcb->freeMap, vcb->mapBlocks, vcb->freeMapAddr);
+		if(ret != vcb->mapBlocks) {
+			err = errno;
+			perror("allocBlocks");
+			return 0;
 		}
 	}
 	// If we did not find enough free blocks, set bitNum to 0 to indicate this
