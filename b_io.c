@@ -152,13 +152,21 @@ int b_read (b_io_fd fd, char * buffer, int count)
 	{
 		return -1;
 	}
-	
+	//Start of our Read Function
 	if (fcbArray[fd].totalRead < fcbArray[fd].fi->fileSize)
 	{
 		if(fcbArray[fd].buflen > count)
 		{
-	
-	
+			memcpy(buf,fcbArray[fd].buf + fcbArray[fd].index,count);
+			fcbArray[fd].buflen -= count;
+			fcbArray[fd].index += count;
+			fcbArray[fd].totalRead += count;
+		}
+		//create a if/else statement, we load a new block if what we requested is larger than what is left in the buffer
+		//here we give the difference of count and the remaining of the buffers
+		else
+		{
+			memcpy(buf,fcbArray[fd]buf + fcbArray[fd].index,fcbArray[fd].buflen);
 	
 	return (0);	//Change this
 	}
