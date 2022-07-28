@@ -30,6 +30,9 @@ typedef struct b_fcb
 	char * buf;		//holds the open file buffer
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
+	int totalRead;
+	int readPos;
+	int new chunk;
 	} b_fcb;
 	
 b_fcb fcbArray[MAXFCBS];
@@ -144,7 +147,19 @@ int b_read (b_io_fd fd, char * buffer, int count)
 		{
 		return (-1); 					//invalid file descriptor
 		}
-		
+	// we check to make sure the FCB is active	
+	if (fcbArray[fd].fi == NULL)
+	{
+		return -1;
+	}
+	
+	if (fcbArray[fd].totalRead < fcbArray[fd].fi->fileSize)
+	{
+		if(fcbArray[fd].buflen > count)
+		{
+	
+	
+	
 	return (0);	//Change this
 	}
 	
