@@ -167,9 +167,35 @@ int b_read (b_io_fd fd, char * buffer, int count)
 		else
 		{
 			memcpy(buf,fcbArray[fd]buf + fcbArray[fd].index,fcbArray[fd].buflen);
-	
+			
+			//updated positon 
+			fcbArray[fd].readPos++;
+			fcbArray[fd].bufferPos = 0;
+			fcbArray[fd].totalRead += fcbArray[fd].buflen;
+			
+			
+			//block created
+			LBAread(fcbArray[fd].buf, 1, fcbArray[fd].readPos);
+			
+			//store whats needed from the new memcpy and block
+			fcbArray[fd].newChunk = count - fcbArray[fd].buflen;
+			memcpy(buf + fcbArray[fd].buflen, fcbArray[fd].buf + fcbArray[fd].newChunk);
+			
+			
+			//updated para
+			fcbArray[fd].buflen = B_CHUNK_SIZE - fcbArray[fd].newChunk;
+			fcbArray[fd].index += fcbArray[fd].newChunk;
+			fcbArray[fd].totalRead += fcbArray[fd].newChunk;
+		}
+		//here we return the # bytes
+		return count;
+	}//exceeds the filesize so it decides to end the program 
+	else
+	{
+		
 	return (0);	//Change this
 	}
+}
 	
 // Interface to Close the file	
 //Release the resources
