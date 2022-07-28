@@ -149,7 +149,10 @@ int b_read (b_io_fd fd, char * buffer, int count)
 	}
 	
 // Interface to Close the file	
+//Release the resources
 int b_close (b_io_fd fd)
 	{
-
+	fcbArray[fd].fi = NULL;
+	free(fcbArray[fd].buffer);
+	fcbArray[fd].buffer = NULL;
 	}
