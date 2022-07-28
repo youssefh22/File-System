@@ -27,6 +27,11 @@
 
 #define OUR_SIG	0x796F616C6A6F616E
 
+#define FILEPATH_SIZE 225
+#define	FILENAME_SIZE 20
+#define MAX_DEPTH 10
+
+
 #ifndef uint64_t
 typedef u_int64_t uint64_t;
 #endif
@@ -39,6 +44,10 @@ typedef u_int16_t uint16_t;
 #ifndef uint8_t
 typedef u_int8_t uint8_t;
 #endif
+
+
+
+typedef enum { I_FILE, I_DIR, I_UNUSED } InodeType;
 
 // This structure is returned by fs_readdir to provide the caller with information
 // about each file as it iterates through a directory
@@ -54,6 +63,8 @@ struct fs_diriteminfo
 // from a directory.  This structure helps you (the file system) keep track of
 // which directory entry you are currently processing so that everytime the caller
 // calls the function readdir, you give the next entry in the directory
+
+
 typedef struct
 	{
 	/*****TO DO:  Fill in this structure with what your open/read directory needs  *****/
@@ -73,7 +84,7 @@ int fs_closedir(fdDir *dirp);
 
 // Misc directory functions
 char * fs_getcwd(char *buf, size_t size);
-int fs_setcwd(char *buf);   //linux chdir
+int fs_setcwd(char *buf);//linux chdir
 int fs_isFile(char * path);	//return 1 if file, 0 otherwise
 int fs_isDir(char * path);		//return 1 if directory, 0 otherwise
 int fs_delete(char* filename);	//removes a file
@@ -90,6 +101,8 @@ struct fs_stat
 	time_t    st_createtime;   	/* time of last status change */
 	
 	/* add additional attributes here for your file system */
+	mode_t    st_mode; 
+	off_t     st_size;
 	};
 
 int fs_stat(const char *path, struct fs_stat *buf);
