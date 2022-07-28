@@ -40,6 +40,9 @@ typedef u_int16_t uint16_t;
 typedef u_int8_t uint8_t;
 #endif
 
+#define DIR_BLOCKS 1
+#define ENTS_PER_DIR 8
+
 // This structure is returned by fs_readdir to provide the caller with information
 // about each file as it iterates through a directory
 struct fs_diriteminfo
@@ -98,21 +101,20 @@ int fs_stat(const char *path, struct fs_stat *buf);
 
 /* Start of our additions to this file */
 
-
 typedef struct {	// Directory Entry Structure
 	time_t 		dateTimeCr;		// Date and Time the file was created
 	time_t 		dateTimeMd;		// Date and Time the file was last modified
 	uint64_t 	location;		// LBA of this file's first block on disk
 	uint32_t 	size;			// If a directory, number of used entries, otherwise file size
-	char 		name[35];		// Name and extension (if applicable) delimited by a '.'
+	char 		name[35];		// Name and extension (if applicable)
 	uint8_t 	attr;			// Attributes
 } dirEnt_t;
 
 // Attribute Masks for Directory Entries
 #define ROOT_MASK  0b00001111	// This dirEnt is the root directory
-#define ISDIR_MASK 0b00000001	// This dirEnt is a directory
+#define DIR_MASK 0b00000001	// This dirEnt is a directory
 
-typedef struct vcb_t {	// VCB structure
+typedef struct {	// VCB structure
 	uint64_t 	blockSize;		// Number of bytes per block
 	uint64_t 	numBlocks;		// Number of blocks on this volume
 	uint64_t 	freeMapAddr;	// LBA of free-space bitmap
@@ -121,6 +123,7 @@ typedef struct vcb_t {	// VCB structure
 	uint64_t 	rootAddr;		// LBA of the root directory
 	uint32_t 	rootSize;		// Number of blocks the root directory occupies
 	uint64_t 	ourSig;			// Signature for our filesystem
+	int			numEnts;		// Number of directory entries per directory
 
 	/* These are pointers to be used during operation and must be initialized on
 	 each run. The values stored on disk will not be valid */
@@ -128,9 +131,19 @@ typedef struct vcb_t {	// VCB structure
 	dirEnt_t* 	root;			// Pointer to the root directory
 	dirEnt_t* 	cwd;			/* Pointer to the current working directory, set
 								   to the root directory on startup */
+	char** 		cwdName;		// Pointer to the absolute path name
 } vcb_t;
 
 
+struct pathInfo {
+	enum lastElem { DNE, File, Dir }; 	/* Status of last element in the path 
+										 * DNE - Does Not Exist
+										 * File - Found and is a file
+										 * Dir - Found and is a directory */
+	dirEnt_t* parent; // Pointer to the parent of the last element
+	uint64_t parentLoc;	// Parent's LBA
+	int index; // Index of the last elem in its parent, if it exists
+};
 
 // Free Space functions
 
