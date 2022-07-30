@@ -1,11 +1,11 @@
-#include "mfs.h"
+
 // Need to LBA write the directory //can make a function 
  fs_writedir(parent){ //can call LBAwrite to write to get it to disk
 //  look at the length of the directory
 //  write that length
  }
 
-fs_mkdir(path){ //time 24
+fs_mkdir(char *pathname, mode_t mode){ //time 24
   /* 
   * call parse path
   * if(error){
@@ -23,25 +23,27 @@ fs_mkdir(path){ //time 24
   * writeDir(parent);
   */ 
 
- //call parse path
-   if(error){
-   return ;
-   }
-   if(lastElement index =< 0){
-   return ; //bc this means last element exist
-   }
-
-   int location = createDir(parent[0].location);//from milestone 1
-   int index = freeDirEn(parent); //find a unused directory entry
-   //from 
-   location  = parent[index].location;
-   int size  = parent[].size;
-    name = parent[].name; 
-   ....
-   writedir(parent);
-   return 
+  parsePath();//call parse path
+  if(error)
+  {
+    return -2;
+  }
+  if(lastElem.DNE)//bc this means last element exist
+  { 
+    return -1;
+  }
+  
+  int location = createDir(parent[0].location);//from milestone 1
+  int index = freeDirEntry(parent); //find a unused directory entry
+  //from 
+  location  = parent[index].location;
+  size  = parent[].size;
+  name = parent[].name; 
+  ....
+  writedir(parent);
 }
-fs_setcwd(path){ //time 29
+
+fs_setcwd(char *buf){ //time 29
 /*
 * parse path
 * if(lastElement exist && is a Dir){
@@ -53,17 +55,19 @@ fs_setcwd(path){ //time 29
 * error 
 * } 
 */
-//  call parse path
-  int isDir = fs_isDir(path);
-  if(lastElement && isDir == 0){
-  DirEntry * cwdpointer = LoadDir(parent[i]); //from parse path
-  char * cwdName = Malloc(); 
-  strcpy(cwd,path);//make an absulote path       
-  }else{
+  parsePath();//call parse path
+  if(!(lastElem.DNE) && fs_isDir == 0)
+  {
+    dirEnt * cwdpointer = loadDir(parent[i]); //from parse path
+    char * cwdName = malloc(); 
+    strcpy(cwd,path);
+    //make an absulote path       
+  }else
+  {
     return -1; //error 
   } 
 }
-fs_delete(path){ //min 33
+fs_delete(char* filename){ //min 33
   /*
   * parse path
   * if(lastElement exist && isfile){
@@ -71,12 +75,12 @@ fs_delete(path){ //min 33
   * }
   */
   // call parse path
-   if(lastElement && isfile(path)== 0){
+   if(!(lastElem) && fs_isfile == 0){
      deleteEntry(parent, i) //Release blob & sets dirEntry to unused
    }
 }
 
-fs_rmdir(){ //min 35
+fs_rmdir(const char *pathname){ //min 35
   /*
   * parse path
   * if(lastElement exist && is a Dir){
@@ -89,25 +93,25 @@ fs_rmdir(){ //min 35
   *   }
   */
   // parse path
-   if(lastElement && fs_isDir == 0){
+   if(lastElem && fs_isDir == 0){
       load(parent);
       scan(parent);
       if( . && ..){ //dir is Empty
         deleteEntry(parent,i);
       }else{
-       // get out
+       return -1;
       }
     }
 }
 
-fs_getcwd(){//min 38
+fs_getcwd(char *buf, size_t size){//min 38
   /*
   *strcpy(buffer,cwdName);
   */
   strcpy(buffer,cwdName);
 }
 
-fs_opendir(path){ //min 44
+fs_opendir(const char *name){ //min 44
   /*
   * parse path
   * if(lastElement exist && isDir){
@@ -121,18 +125,18 @@ fs_opendir(path){ //min 44
   * }
   */
   // call parse path
-   if(lastElement && fs_isDir == 0){
+   if(lastElem && fs_isDir == 0){
      fdDir returnValue = malloc(sizeof(fdDir));
      returnValue->dir = LoadDir(parent[i]);
      returValue->current = 0;
      returValue->max = parent[i].size/sizeof(DirEntry);
-     return(retuenValue)
+     return(retuenValue);
    }else{
-     error
+     return -1;
    }
 }
 
-fs_readdir(fdDir){//min 47
+fs_readdir(fdDir *dirp){//min 47
   /*
   * for(i = fdDir->current; i< fdDir->max; i++){
   *   if(fdDir->Directory[i] is used){
@@ -167,40 +171,24 @@ fs_stat(){
 }
 
 fs_isFile(){
-/*
-* //parse !open == file
-* if(){
-* 
-*   return 1//true
-* }else{
-*   return 0//false
-* }
-*/
-if(){
-
-  return 1;
-}else{
-  return 0;
-}
-
-
+  if(lastElem.File)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
 }
 fs_isDir(){
-/*
-* //parse open == dir
-* if(){
-* 
-*   return 1//true
-* }else{
-*   return 0//false
-* }
-*/
-if(){
-
-  return 1;
-}else{
-  return 0;
-}
+  if(lastElem.Dir)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
 }
 
 
