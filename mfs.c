@@ -1,17 +1,16 @@
+#include "mfs.h"
+// Need to LBA write the directory //can make a function 
+ fs_writedir(parent){ //can call LBAwrite to write to get it to disk
+//  look at the length of the directory
+//  write that length
+ }
 
-/* Need to LBA write the directory //can make a function 
-*  
-* fs_writedir(parent){ can call LBAwrite to write to get it to disk
-*  look at the length of the directory
-*  write that length
-* }
-*/
-
-fs_mkdir(){
+fs_mkdir(path){ //time 24
   /* 
   * call parse path
   * if(error){
-  * get out}
+  * get out
+  * }
   * if(lastElement index =< 0){
   * get out //bc this means last element exist
   * }
@@ -23,10 +22,28 @@ fs_mkdir(){
   *                   ...
   * writeDir(parent);
   */ 
+
+ //call parse path
+   if(error){
+   return ;
+   }
+   if(lastElement index =< 0){
+   return ; //bc this means last element exist
+   }
+
+   int location = createDir(parent[0].location);//from milestone 1
+   int index = freeDirEn(parent); //find a unused directory entry
+   //from 
+   location  = parent[index].location;
+   int size  = parent[].size;
+    name = parent[].name; 
+   ....
+   writedir(parent);
+   return 
 }
-fs_setcwd(path){
+fs_setcwd(path){ //time 29
 /*
-*parse path
+* parse path
 * if(lastElement exist && is a Dir){
 *  // from parse path
 * DirEntry * cwdpointer = LoadDir(parent[i]);
@@ -36,17 +53,30 @@ fs_setcwd(path){
 * error 
 * } 
 */
+//  call parse path
+  int isDir = fs_isDir(path);
+  if(lastElement && isDir == 0){
+  DirEntry * cwdpointer = LoadDir(parent[i]); //from parse path
+  char * cwdName = Malloc(); 
+  strcpy(cwd,path);//make an absulote path       
+  }else{
+    return -1; //error 
+  } 
 }
-fs_delete(path){
+fs_delete(path){ //min 33
   /*
   * parse path
   * if(lastElement exist && isfile){
   *   deleteEntry(parent, i) //Release blob & sets dirEntry to unused
   * }
   */
+  // call parse path
+   if(lastElement && isfile(path)== 0){
+     deleteEntry(parent, i) //Release blob & sets dirEntry to unused
+   }
 }
 
-fs_rmdir(){
+fs_rmdir(){ //min 35
   /*
   * parse path
   * if(lastElement exist && is a Dir){
@@ -57,17 +87,27 @@ fs_rmdir(){
   *   }else{
   *     get out
   *   }
-  * }
   */
+  // parse path
+   if(lastElement && fs_isDir == 0){
+      load(parent);
+      scan(parent);
+      if( . && ..){ //dir is Empty
+        deleteEntry(parent,i);
+      }else{
+       // get out
+      }
+    }
 }
 
-fs_getcwd(){
+fs_getcwd(){//min 38
   /*
   *strcpy(buffer,cwdName);
   */
+  strcpy(buffer,cwdName);
 }
 
-fs_opendir(path){
+fs_opendir(path){ //min 44
   /*
   * parse path
   * if(lastElement exist && isDir){
@@ -80,9 +120,19 @@ fs_opendir(path){
   *   error
   * }
   */
+  // call parse path
+   if(lastElement && fs_isDir == 0){
+     fdDir returnValue = malloc(sizeof(fdDir));
+     returnValue->dir = LoadDir(parent[i]);
+     returValue->current = 0;
+     returValue->max = parent[i].size/sizeof(DirEntry);
+     return(retuenValue)
+   }else{
+     error
+   }
 }
 
-fs_readdir(fdDir){
+fs_readdir(fdDir){//min 47
   /*
   * for(i = fdDir->current; i< fdDir->max; i++){
   *   if(fdDir->Directory[i] is used){
@@ -94,6 +144,15 @@ fs_readdir(fdDir){
   * }
   * return null //bc none of the remainding entries are used
   */
+  for(int i = fdDir->current; i < fdDir->max; i++){
+     if(fdDir->directory[i]){ //is used
+        fdDir->item.name = fdDir->Directory[i].name;
+        // fdDir->item.type = file or Directory
+        fdDir->current = i+1; //next element 
+        return (&fdDir->item); //address
+     }
+   }
+   return null;
 }
 
 
@@ -117,6 +176,14 @@ fs_isFile(){
 *   return 0//false
 * }
 */
+if(){
+
+  return 1;
+}else{
+  return 0;
+}
+
+
 }
 fs_isDir(){
 /*
@@ -128,11 +195,17 @@ fs_isDir(){
 *   return 0//false
 * }
 */
+if(){
+
+  return 1;
+}else{
+  return 0;
 }
+}
+
 
 //Return value of Parse path  = 0 , path valid or
 //                          non 0 , path invalid
-
 /*
 struct 
 diEntry * dir //memory pointer to ram
