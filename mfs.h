@@ -41,7 +41,6 @@ typedef u_int8_t uint8_t;
 #endif
 
 #define DIR_BLOCKS 1
-#define ENTS_PER_DIR 8
 
 // This structure is returned by fs_readdir to provide the caller with information
 // about each file as it iterates through a directory
@@ -63,6 +62,9 @@ typedef struct
 	unsigned short  d_reclen;		/*length of this record */
 	unsigned short	dirEntryPosition;	/*which directory entry position, like file pos */
 	uint64_t	directoryStartLocation;		/*Starting LBA of directory */
+	dirEnt_t* dirPtr;
+	int maxEntries;
+	struct fs_diriteminfo diInfo;
 	} fdDir;
 
 // Key directory functions
@@ -111,8 +113,8 @@ typedef struct {	// Directory Entry Structure
 } dirEnt_t;
 
 // Attribute Masks for Directory Entries
-#define ROOT_MASK  0b00001111	// This dirEnt is the root directory
-#define DIR_MASK 0b00000001	// This dirEnt is a directory
+#define ROOT_MASK	0b00001111	// This dirEnt is the root directory
+#define DIR_MASK	0b00000001	// This dirEnt is a directory
 
 typedef struct {	// VCB structure
 	uint64_t 	blockSize;		// Number of bytes per block
@@ -123,7 +125,7 @@ typedef struct {	// VCB structure
 	uint64_t 	rootAddr;		// LBA of the root directory
 	uint32_t 	rootSize;		// Number of blocks the root directory occupies
 	uint64_t 	ourSig;			// Signature for our filesystem
-	int			numEnts;		// Number of directory entries per directory
+	int			dirLen;			// Number of directory entries per directory
 
 	/* These are pointers to be used during operation and must be initialized on
 	 each run. The values stored on disk will not be valid */
@@ -136,14 +138,27 @@ typedef struct {	// VCB structure
 
 
 struct pathInfo {
-	enum lastElem { DNE, File, Dir }; 	/* Status of last element in the path 
-										 * DNE - Does Not Exist
-										 * File - Found and is a file
-										 * Dir - Found and is a directory */
+	enum fType { DNE, File, Dir } lastElem; /* Status of last element in the path 
+										 	 * DNE  - Does Not Exist
+										 	 * File - Found and is a file
+										 	 * Dir  - Found and is a directory
+											 */
 	dirEnt_t* parent; // Pointer to the parent of the last element
 	uint64_t parentLoc;	// Parent's LBA
+	char** absPath;	// Full path
 	int index; // Index of the last elem in its parent, if it exists
 };
+
+// DIR FUNCTIONS
+int parsePath(struct pathInfo* buf, const char* path);
+
+int searchDir(dirEnt_t* dir, char* token);
+
+int loadDir(dirEnt_t* buf, uint64_t location);
+
+dirEnt_t* createDir(uint64_t parentAddr);
+
+
 
 // Free Space functions
 
@@ -158,5 +173,7 @@ int isBitFree(uint8_t byte, uint8_t bit);
 
 // Return first LBA of contiguous free blocks, 0 if failed
 uint64_t allocBlocks(int count);
-#endif
 
+
+
+#endif
