@@ -45,7 +45,9 @@ fs_mkdir(char *pathname, mode_t mode){ //time 24
   location  = parent[index].location;
   size  = parent[].size;
   name = parent[].name; 
-  ....
+  timeCr = parent[].dateTimeC;
+  timeMd = parent[].dateTimeMd;
+  attr   = parent[].attr;  
   writedir(parent);
 }
 
@@ -114,6 +116,7 @@ fs_getcwd(char *buf, size_t size){//min 38
   /*
   *strcpy(buffer,cwdName);
   */
+ strcpy(buf,vcb_t.cwdName);
 }
 
 fs_opendir(const char *name){ //min 44
@@ -167,10 +170,9 @@ fs_readdir(fdDir *dirp){//min 47
 
 
 
-closeDir(){
+closeDir(){}
 
-}
-
+//to do
 fs_stat(){
 
 }
