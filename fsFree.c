@@ -9,7 +9,7 @@
 #include "mfs.h"
 
 
-#define FULL_BYTE 255	// Value of a byte with all bits set to 1
+//#define FULL_BYTE 255	// Value of a byte with all bits set to 1
 
 extern vcb_t* vcb;
 extern int err;
