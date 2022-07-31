@@ -193,10 +193,8 @@ char *fs_getcwd(char *buf, size_t size)
 
     strcpy(buf, path);
 
-    free(dir);
-    dir = NULL;
-    free(tempArr);
-    tempArr = NULL;
+    fs_closeDir(dir);
+    fs_closeDir(tempArr);
 
     return path;
 }
