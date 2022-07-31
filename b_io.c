@@ -103,7 +103,7 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 
 	if (whence & SEEK_END)
 	{
-		fcbArray[fd].index = fcbArray[fd].fi->actualSize / B_CHUNK_SIZE;
+		fcbArray[fd].index = fcbArray[fd].fi->size / B_CHUNK_SIZE;
 	}
 
 	return (fcbArray[fd].index); //
