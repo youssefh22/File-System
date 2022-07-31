@@ -30,9 +30,10 @@ typedef struct b_fcb
 	char * buf;		//holds the open file buffer
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
-	int totalRead;
-	int readPos;
-	int new chunk;
+	int Read;		//keeps track of how many times we read
+	int Position;		//tracks the position
+	file * fi; // this helps us handle the low level system 
+	int newChunk;
 	} b_fcb;
 	
 b_fcb fcbArray[MAXFCBS];
@@ -76,6 +77,23 @@ b_io_fd b_open (char * filename, int flags)
 	//
 		
 	if (startup == 0) b_init();  //Initialize our system
+	
+	//allocate the buffer
+	fcbArray[fd].buf = malloc(B_CHUNK_SIZE);
+	
+	//we set out index to zero since we start at zero
+	fcbArray[fd].index =0;
+	
+	//we are going to do -1 each time the read is called upon
+	fcbArray[fd].buflen = B_CHUNK_SIZE
+		
+	//Read will be tracked each time it is called
+	fcbArray[fd].Read = 0;
+	//we read the first block and read it to the buffer +1 for the Position
+	LBAread(fcbArray[fd].buf, 1, fcbArray[fd].Position);
+	
+	
+	
 	
 	returnFd = b_getFCB();				// get our own file descriptor
 										// check for error - all used FCB's
@@ -153,14 +171,14 @@ int b_read (b_io_fd fd, char * buffer, int count)
 		return -1;
 	}
 	//Start of our Read Function
-	if (fcbArray[fd].totalRead < fcbArray[fd].fi->fileSize)
+	if (fcbArray[fd].Read < fcbArray[fd].fi->fileSize)
 	{
 		if(fcbArray[fd].buflen > count)
 		{
 			memcpy(buf,fcbArray[fd].buf + fcbArray[fd].index,count);
 			fcbArray[fd].buflen -= count;
 			fcbArray[fd].index += count;
-			fcbArray[fd].totalRead += count;
+			fcbArray[fd].Read += count;
 		}
 		//create a if/else statement, we load a new block if what we requested is larger than what is left in the buffer
 		//here we give the difference of count and the remaining of the buffers
@@ -169,13 +187,13 @@ int b_read (b_io_fd fd, char * buffer, int count)
 			memcpy(buf,fcbArray[fd]buf + fcbArray[fd].index,fcbArray[fd].buflen);
 			
 			//updated positon 
-			fcbArray[fd].readPos++;
-			fcbArray[fd].bufferPos = 0;
-			fcbArray[fd].totalRead += fcbArray[fd].buflen;
+			fcbArray[fd].Position++;
+			fcbArray[fd].index = 0;
+			fcbArray[fd].Read += fcbArray[fd].buflen;
 			
 			
 			//block created
-			LBAread(fcbArray[fd].buf, 1, fcbArray[fd].readPos);
+			LBAread(fcbArray[fd].buf, 1, fcbArray[fd].Position);
 			
 			//store whats needed from the new memcpy and block
 			fcbArray[fd].newChunk = count - fcbArray[fd].buflen;
@@ -185,7 +203,7 @@ int b_read (b_io_fd fd, char * buffer, int count)
 			//updated para
 			fcbArray[fd].buflen = B_CHUNK_SIZE - fcbArray[fd].newChunk;
 			fcbArray[fd].index += fcbArray[fd].newChunk;
-			fcbArray[fd].totalRead += fcbArray[fd].newChunk;
+			fcbArray[fd].Read += fcbArray[fd].newChunk;
 		}
 		//here we return the # bytes
 		return count;
