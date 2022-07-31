@@ -24,6 +24,7 @@ dirEnt_t* createDir(uint64_t parentAddr) {
     // Request blocks, return NULL if allocBlocks fails
     uint64_t dirLoc = allocBlocks(DIR_BLOCKS);
     if(dirLoc == 0) {
+        freeBlocks(parentAddr, DIR_BLOCKS);
         return NULL;
     }
     printf("in createDir: dirLoc = %ld\n", dirLoc);
@@ -31,6 +32,7 @@ dirEnt_t* createDir(uint64_t parentAddr) {
     if(dir == NULL) {
         err = errno;
         perror("createDir");
+        freeBlocks(parentAddr, DIR_BLOCKS);
         return NULL;
     }
 
@@ -81,6 +83,7 @@ dirEnt_t* createDir(uint64_t parentAddr) {
     if(ret != DIR_BLOCKS) {
         free(dir);
         dir = NULL;
+        freeBlocks(parentAddr, DIR_BLOCKS);
     }
     
     return dir;
@@ -103,7 +106,7 @@ int loadDir(dirEnt_t* buf, uint64_t location) {
         return err;
     }
 
-    return 1;
+    return 0;
 }
 
 
@@ -141,7 +144,16 @@ int isDir(dirEnt_t* parent, int index) {
     return (parent[index].attr & DIR_MASK);
 }
 
-
+/**
+ * @brief Parses a path given to it, filling the struct pathInfo buffer passed
+ * to it.
+ * 
+ * @param buf - the pathInfo struct we are filling for the caller
+ * @param path - the pathname we are parsing
+ * @return int - On success: 0
+ *               On Failure: -1
+ * NOTE: If parsePath fails, the data in buf cannot be guaranteed to be valid
+ */
 int parsePath(struct pathInfo* buf, const char* path) {
     dirEnt_t* curDir; // Current directory we are looking in
     char* pathCpy = malloc(strlen(path) + 1);
@@ -171,45 +183,18 @@ int parsePath(struct pathInfo* buf, const char* path) {
 
     // Loop through all tokens
     while(token != NULL) {
-        // Initialize found for each token
-        // found = 0;
-        //
-        //
-        //  Loop through each entry in this directory
-        //  for(int i = 0; i < vcb->dirLen; i++) {
-        //    
-        //       If the token and an entry name match, load that direcotry entry
-        //       if(strcmp(token, tempDir[i].name) == 0) {
-        //           // uint64_t tempLoc = tempDir[i].location;
-        //           // ret = loadDir(tempDir, tempLoc);
-        //           tempDir = malloc(DIR_BLOCKS * vcb->blockSize);
-        //           if(tempDir == NULL) {
-        //               err = errno;
-        //               perror("parsePath");
-        //               return err;
-        //           }
-        //           ret = loadDir(tempDir, tempDir[i].location);
-        //           if(ret != 0) {
-        //               printf("ERROR: parsePath: loadDir\n");
-        //               free(tempDir);
-        //               return -1;
-        //           }
-        //           found = 1;
-        //           break;
-        //       }
-        //  }
-        //  if(found == 1) {
-        //    
-        //  }
+        // Re-set staus each loop
         status = DNE;
         // Search the loaded directory for a filename matching the token
         index = searchDir(curDir, token);
+        printf("searchDir: %d\n", index);
+        strcat(absPath, token);
+        strcat(absPath, "/");
         if(index != -1) {
             // If the found entry is a directory, load it
             if(isDir(curDir, index)) {
+                printf("loading dir...\n");
                 status = Dir;
-                strcat(absPath, token);
-                strcat(absPath, "/");
                 int ret = loadDir(nextDir, curDir[index].location);
                 if(ret != 0) {
                     return -1;
@@ -261,13 +246,15 @@ int parsePath(struct pathInfo* buf, const char* path) {
     buf->parentLoc = curDir[0].location;
     strcpy(buf->absPath, absPath);
     
-    //if(nextDir && nextDir != vcb->root && nextDir != vcb->cwd) {
-        free(nextDir);
-        nextDir = NULL;
-    //}
+    if(nextDir) {
+        if(nextDir != vcb->root && nextDir != vcb->cwd) {
+            free(nextDir);
+            nextDir = NULL;
+        }
+    }
     free(pathCpy);
     pathCpy = NULL;
-
+    printf("absPath: %s\n", absPath);
     return 0;
 }
 
