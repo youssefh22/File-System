@@ -144,3 +144,15 @@ uint64_t allocBlocks(int count) {
 
 	return bitNum;
 }
+
+int freeBlocks(uint64_t addr, int count) {
+	int index;
+	uint8_t bit;
+	for(int i = 0; i < count; i++) {
+		index = (addr + i) / 8;
+		bit = (addr + i) % 8;
+		unsetBit(&vcb->freeMap[index], bit);
+	}
+
+	return 1;
+}
