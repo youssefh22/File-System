@@ -41,7 +41,17 @@ typedef u_int8_t uint8_t;
 #endif
 
 #define DIR_BLOCKS 1
+#define MAX_PATH 256
+#define FULL_BYTE 255
 
+typedef struct {	// Directory Entry Structure
+	time_t 		dateTimeCr;		// Date and Time the file was created
+	time_t 		dateTimeMd;		// Date and Time the file was last modified
+	uint64_t 	location;		// LBA of this file's first block on disk
+	uint32_t 	size;			// If a directory, number of used entries, otherwise file size
+	char 		name[35];		// Name and extension (if applicable)
+	uint8_t 	attr;			// Attributes
+} dirEnt_t;
 // This structure is returned by fs_readdir to provide the caller with information
 // about each file as it iterates through a directory
 struct fs_diriteminfo
@@ -63,7 +73,7 @@ typedef struct
 	unsigned short	dirEntryPosition;	/*which directory entry position, like file pos */
 	uint64_t	directoryStartLocation;		/*Starting LBA of directory */
 	dirEnt_t* dirPtr;
-	int maxEntries;
+	//int maxEntries;
 	struct fs_diriteminfo diInfo;
 	} fdDir;
 
@@ -103,17 +113,11 @@ int fs_stat(const char *path, struct fs_stat *buf);
 
 /* Start of our additions to this file */
 
-typedef struct {	// Directory Entry Structure
-	time_t 		dateTimeCr;		// Date and Time the file was created
-	time_t 		dateTimeMd;		// Date and Time the file was last modified
-	uint64_t 	location;		// LBA of this file's first block on disk
-	uint32_t 	size;			// If a directory, number of used entries, otherwise file size
-	char 		name[35];		// Name and extension (if applicable)
-	uint8_t 	attr;			// Attributes
-} dirEnt_t;
+
 
 // Attribute Masks for Directory Entries
-#define ROOT_MASK	0b00001111	// This dirEnt is the root directory
+// Not using ROOT_MASK anymore
+//#define ROOT_MASK	0b00001111	// This dirEnt is the root directory
 #define DIR_MASK	0b00000001	// This dirEnt is a directory
 
 typedef struct {	// VCB structure
@@ -133,7 +137,7 @@ typedef struct {	// VCB structure
 	dirEnt_t* 	root;			// Pointer to the root directory
 	dirEnt_t* 	cwd;			/* Pointer to the current working directory, set
 								   to the root directory on startup */
-	char** 		cwdName;		// Pointer to the absolute path name
+	char* 		cwdName;		// Pointer to the absolute path name
 } vcb_t;
 
 
@@ -145,11 +149,12 @@ struct pathInfo {
 											 */
 	dirEnt_t* parent; // Pointer to the parent of the last element
 	uint64_t parentLoc;	// Parent's LBA
-	char** absPath;	// Full path
-	int index; // Index of the last elem in its parent, if it exists
+	char absPath[MAX_PATH]; // Absolute path that was parsed
+	int index; // Index of the last elem in its parent, -1 if DNE
 };
 
 // DIR FUNCTIONS
+
 int parsePath(struct pathInfo* buf, const char* path);
 
 int searchDir(dirEnt_t* dir, char* token);
