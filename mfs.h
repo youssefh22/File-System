@@ -179,6 +179,6 @@ int isBitFree(uint8_t byte, uint8_t bit);
 // Return first LBA of contiguous free blocks, 0 if failed
 uint64_t allocBlocks(int count);
 
-
+int freeBlocks(uint64_t addr, int count);
 
 #endif
