@@ -100,22 +100,6 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 			perror("vcb->root");
 			return err;
 		}
-		// Set vcb->cwd to the root directory
-		// vcb->cwd = vcb->root;
-
-		vcb->cwd = malloc(vcb->rootSize * vcb->blockSize);
-		if(vcb->cwd == NULL) {
-			err = errno;
-			perror("vcb->cwd");
-			return err;
-		}
-		// LBAread the root directory on disk into vcb->root
-		ret = LBAread(vcb->cwd, vcb->rootSize, vcb->rootAddr);
-		if(ret != vcb->rootSize) {
-			err = errno;
-			perror("vcb->cwd");
-			return err;
-		}
 	}
 	// If our signature is not present or correct, we must initialize the volume
 	else {
@@ -127,12 +111,15 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 		vcb->freeMapAddr = 1;
 
 		// Using a byte array for freeMap, freeLen will be number of bytes
-		vcb->freeLen = (numberOfBlocks + sizeof(*bitV) - 1) / sizeof(*bitV);
+		vcb->freeLen = (numberOfBlocks + 7) / 8;
+		printf("vcb->freeLen: %lu\n", vcb->freeLen);
 
 		// Calculate mapBlocks, the number of blocks the freeMap needs
 		vcb->mapBlocks = (vcb->freeLen + blockSize - 1) / blockSize;
+		printf("vcb->mapBlocks: %u\n", vcb->mapBlocks);
 
-		vcb->numEnts = DIR_BLOCKS * blockSize / sizeof(dirEnt_t);
+		vcb->dirLen = DIR_BLOCKS * blockSize / sizeof(dirEnt_t);
+		printf("vcb->dirLen: %d\n", vcb->dirLen);
 
 		// Initialize the freeSpace now that the above values have been set
 		int ret = initFreeSpace();
@@ -144,13 +131,14 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 
 		// The root directory will be located after the freeMap
 		vcb->rootAddr = vcb->freeMapAddr + vcb->mapBlocks;
+		printf("vcb->rootAddr: %lu\n", vcb->rootAddr);
 
 		// Will use 1 block for the root directory for now
-		vcb->rootSize = 1;
+		vcb->rootSize = DIR_BLOCKS;
 
 		// Can now initialize the root directory
-		ret = initRoot();
-		if(ret != 1) {
+		//ret = initRoot();
+		if(createDir(0) == NULL) {
 			printf("ERROR: initRoot()\n");
 			return -1;
 		}
@@ -166,7 +154,22 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 			return err;
 		}
 	}
+	// Set vcb->cwd to the root directory
+	vcb->cwd = malloc(vcb->rootSize * vcb->blockSize);
+	if(vcb->cwd == NULL) {
+		err = errno;
+		perror("vcb->cwd");
+		return err;
+	}
+	// LBAread the root directory on disk into vcb->root
+	ret = LBAread(vcb->cwd, vcb->rootSize, vcb->rootAddr);
+	if(ret != vcb->rootSize) {
+		err = errno;
+		perror("vcb->cwd");
+		return err;
+	}
 
+	vcb->cwdName = "/";
 	return 0;
 	}
 	
@@ -188,12 +191,30 @@ void exitFileSystem ()
  * @return int 
  */
 int initFreeSpace() {
-	// Allocate space and set values to 0
-	bitV = calloc(sizeof(*bitV), vcb->freeLen);
+	int freeSize = vcb->mapBlocks * vcb->blockSize;
+	/* Allocate space and set values to 0
+	 * This allocates an even multiple of blockSize and there may be bits
+	 * at the end which do not correspond to an LBA.
+	 */
+	bitV = calloc(freeSize, sizeof(*bitV));
 	if(bitV == NULL) {
 		err = errno;
 		perror("bitV");
 		return err;
+	}
+
+	// Set out of bounds trailing bits to 1
+	// Calculate how many bytes and bits must be set to prevent allocating them
+	int voidBits = freeSize * 8 - vcb->numBlocks;
+	int voidBytes = voidBits / 8;
+	voidBits = voidBits % 8;
+	for(int i = 1; i <= voidBytes; i++) {
+		bitV[freeSize - i] = FULL_BYTE;
+	}
+	for(int i = 0; i < voidBits; i++) {
+		// Set the index of the bit
+		uint8_t bit = 8 - (voidBits - i);
+		setBit(&bitV[freeSize - (voidBytes + 1)], i);
 	}
 	
 	// Set bit 0 to 1, marking VCB as used
@@ -227,10 +248,11 @@ int initFreeSpace() {
  * 	1 if successful
  * 	-1 if failed
  */
+/*
 int initRoot() {
 	uint64_t location = allocBlocks(DIR_BLOCKS);
 	// Allocate memory for direcotry entries
-	dirEnt_t* root = malloc(sizeof(*root) * 8);
+	dirEnt_t* root = malloc(sizeof(*root) * sizeof(*bitV));
 
 	// Initialize directory entry elements
 	for(int i = 0; i < 8; i++) {
@@ -253,7 +275,7 @@ int initRoot() {
 
 
 	// Request free block(s)
-	uint64_t location = allocBlocks(1);
+	uint64_t location = allocBlocks(DIR_BLOCKS);
 	if(location == 0) {
 		printf("ERROR: allocBlocks()\n");
 		return -1;
@@ -276,3 +298,4 @@ int initRoot() {
 
 	return 1;
 }
+*/
