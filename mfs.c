@@ -1,7 +1,13 @@
+#include <sys/types.h>
+#include <sys/types.h>
+
+#include <time.h>
+
+#include "mfs.h"
 
 // Need to LBA write the directory //can make a function 
  fs_writedir(parent){ //can call LBAwrite to write to get it to disk
-//  look at the length of the directory
+//  look at the lengthof the directory
 //  write that length
  }
 
@@ -23,8 +29,8 @@ fs_mkdir(char *pathname, mode_t mode){ //time 24
   * writeDir(parent);
   */ 
 
-  parsePath();//call parse path
-  if(error)
+  // parsePath();//call parse path
+  if(parsePath() != 0)
   {
     return -2;
   }
@@ -96,7 +102,7 @@ fs_rmdir(const char *pathname){ //min 35
    if(lastElem && fs_isDir == 0){
       load(parent);
       scan(parent);
-      if( . && ..){ //dir is Empty
+      if( lastElem.Dir == '.' && lastElem.Dir == '..'){ //dir is Empty
         deleteEntry(parent,i);
       }else{
        return -1;
@@ -108,7 +114,6 @@ fs_getcwd(char *buf, size_t size){//min 38
   /*
   *strcpy(buffer,cwdName);
   */
-  strcpy(buffer,cwdName);
 }
 
 fs_opendir(const char *name){ //min 44
