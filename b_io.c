@@ -91,9 +91,22 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 		{
 		return (-1); 					//invalid file descriptor
 		}
-		
-		
-	return (0); //Change this
+	if (whence & SEEK_SET)
+	{
+		fcbArray[fd].index = offset;
+	}
+
+	if (whence & SEEK_CUR)
+	{
+		fcbArray[fd].index = fcbArray[fd].index + offset;
+	}
+
+	if (whence & SEEK_END)
+	{
+		fcbArray[fd].index = fcbArray[fd].fi->actualSize / B_CHUNK_SIZE;
+	}
+
+	return (fcbArray[fd].index);
 	}
 
 
