@@ -76,8 +76,27 @@ b_io_fd b_open (char * filename, int flags)
 	
 	returnFd = b_getFCB();				// get our own file descriptor
 										// check for error - all used FCB's
-	
-	return (returnFd);						// all set
+
+	if (returnFd == NULL) {
+		return -1;
+	}
+
+	if( returnFd != -1) // b_getFCB did not fail
+	{
+        fcbArray[returnFd].fi = filename; // store pointer to filename in fi
+		if (fcbArray[returnFd].fi == NULL) // check if file not found found
+		{
+			printf("Cannot find specified file.");
+			return -1; // negative number because of error
+		}
+    	}
+    	fcbArray[returnFd].buf = malloc(B_CHUNK_SIZE);	// allocate 512 byte buffer
+    	fcbArray[returnFd].index = 0; // set index to 0
+	fcbArray[returnFd].buflen = B_CHUNK_SIZE;
+	fcbArray[returnFd].totalRead = 0;
+	LBAread(fcbArray[returnFd].buf, 1, fcbArray[returnFd].readPos);
+
+    	return (returnFd); // return file descriptor						// all set
 	}
 
 
