@@ -27,9 +27,13 @@
 typedef struct b_fcb
 	{
 	/** TODO add al the information you need in the file control block **/
+	file *fi;
 	char * buf;		//holds the open file buffer
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
+	int totalRead;
+	int readPos;
+	int newChunk;
 	} b_fcb;
 	
 b_fcb fcbArray[MAXFCBS];
