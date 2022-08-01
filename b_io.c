@@ -137,6 +137,12 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 // Interface to write function	
 int b_write (b_io_fd fd, char * buffer, int count)
 	{
+	int part1, part2;
+	int writeBytes;
+	int copy;
+	int remain;
+	int next;
+
 	if (startup == 0) b_init();  //Initialize our system
 
 	// check that fd is between 0 and (MAXFCBS-1)
@@ -144,9 +150,54 @@ int b_write (b_io_fd fd, char * buffer, int count)
 		{
 		return (-1); 					//invalid file descriptor
 		}
+
+	if (fcbArray[fd].fi == NULL)
+	{
+		return -1;
+	}
 		
-		
-	return (0); //Change this
+	if (count > B_CHUNK_SIZE)
+	{
+		copy = B_CHUNK_SIZE - fcbArray[fd].buflen;
+		memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer, copy);
+		LBAwrite(fcbArray[fd].fi, fcbArray[fd].buf, B_CHUNK_SIZE);
+
+		next = (count - copy) / B_CHUNK_SIZE;													   //next writing part
+		remain = (count - copy) - write(fcbArray[fd].fi, buffer + copy, next * B_CHUNK_SIZE);
+
+		memcpy(fcbArray[fd].buf, buffer + (count - remain), remain);
+		fcbArray[fd].buflen = fcbArray[fd].index;
+		fcbArray[fd].index = remain;
+		writeBytes = copy + remain;
+	}
+	else
+	{
+		if ((fcbArray[fd].buflen + count) > B_CHUNK_SIZE)
+		{
+			part1 = B_CHUNK_SIZE - fcbArray[fd].buflen;
+			memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer, part1);
+			fcbArray[fd].buflen += part1;
+			fcbArray[fd].index += part1;
+			part2 = count - part1;
+
+			if (fcbArray[fd].buflen == B_CHUNK_SIZE)
+			{
+				LBAwrite(fcbArray[fd].fi, fcbArray[fd].buf, B_CHUNK_SIZE);
+			}
+			memcpy(fcbArray[fd].buf, buffer + part1, part2);
+			fcbArray[fd].buflen = fcbArray[fd].index = part2;
+			writeBytes = part1 + part2;
+		}
+		else
+		{
+			memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer, count);
+			fcbArray[fd].index += count;
+			fcbArray[fd].buflen += count;
+			writeBytes = count;
+		}
+	}
+
+	return writeBytes;
 	}
 
 
