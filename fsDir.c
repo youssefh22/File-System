@@ -27,7 +27,7 @@ dirEnt_t* createDir(uint64_t parentAddr) {
         freeBlocks(parentAddr, DIR_BLOCKS);
         return NULL;
     }
-    printf("in createDir: dirLoc = %ld\n", dirLoc);
+   // printf("in createDir: dirLoc = %ld\n", dirLoc);
     dirEnt_t* dir = malloc(sizeof(*dir) * vcb->dirLen);
     if(dir == NULL) {
         err = errno;
@@ -37,7 +37,7 @@ dirEnt_t* createDir(uint64_t parentAddr) {
     }
 
     // Initiailize the directory entries
-    printf("initializing entries\n");
+    //printf("initializing entries\n");
     for(int i = 0; i < vcb->dirLen; i++) {
         dir[i].dateTimeCr = 0;
         dir[i].dateTimeMd = 0;
@@ -48,7 +48,7 @@ dirEnt_t* createDir(uint64_t parentAddr) {
     }
 
     // Initiazize "." entry
-    printf("initializing . entry\n");
+    //printf("initializing . entry\n");
     strncpy(dir[0].name, ".", 35);
     dir[0].size = DIR_BLOCKS * vcb->blockSize;
     dir[0].dateTimeCr = time(NULL);
@@ -57,7 +57,7 @@ dirEnt_t* createDir(uint64_t parentAddr) {
     dir[0].location = dirLoc;
 
     // Initialize ".." entry
-    printf("initializing .. entry\n");
+    //printf("initializing .. entry\n");
     strncpy(dir[1].name, "..", 35);
     dir[1].size = DIR_BLOCKS * vcb->blockSize;
     dir[1].dateTimeCr = dir[0].dateTimeCr;
@@ -69,7 +69,7 @@ dirEnt_t* createDir(uint64_t parentAddr) {
      * Set vcb->root to this directory
      */
     if(parentAddr == 0) {
-        dir[1].location = dirLoc;
+        dir[1].location = dir[0].location;
         vcb->root = dir;
     }
     // Otherwise set to parentAddr
@@ -89,6 +89,23 @@ dirEnt_t* createDir(uint64_t parentAddr) {
     return dir;
 }
 
+int deleteDirEnt(dirEnt_t* parent, int index) {
+    uint64_t addr = parent[index].location;
+
+    parent[index].dateTimeCr = 0;
+    parent[index].dateTimeMd = 0;
+    parent[index].location = 0;
+    parent[index].size = 0;
+    parent[index].attr = 0;
+    strncpy(parent[index].name, "", strlen(parent[index].name));
+
+    freeBlocks(addr, DIR_BLOCKS);
+
+    LBAwrite(parent, DIR_BLOCKS, parent[0].location);
+
+    return 1;
+}
+
 
 /**
  * @brief Loads a directory from the disk to the buffer passed from the caller
@@ -99,13 +116,14 @@ dirEnt_t* createDir(uint64_t parentAddr) {
  *               On failure: errno
  */
 int loadDir(dirEnt_t* buf, uint64_t location) {
+    printf("loadDir: location: %lu\n", location);
     int ret = LBAread(buf, DIR_BLOCKS, location);
     if(ret != DIR_BLOCKS) {
         err = errno;
         perror("loadDir");
         return err;
-    }
-
+    } 
+    printf("loadDir: buf location: %lu\n", buf[0].location);
     return 0;
 }
 
@@ -120,6 +138,7 @@ int loadDir(dirEnt_t* buf, uint64_t location) {
  */
 int searchDir(dirEnt_t* dir, char* token) {
     int index = -1;
+    printf("searchDir: token= %s\n",token);
     // Loop through each entry in this directory
     for(int i = 0; i < vcb->dirLen; i++) {
         // If the token and an entry name match, load that direcotry entry
@@ -144,6 +163,29 @@ int isDir(dirEnt_t* parent, int index) {
     return (parent[index].attr & DIR_MASK);
 }
 
+
+char* buildPath(char* path, char* token) {
+    printf("buildPath: path: %s  token: %s\n", path, token);
+    // If token is "..", remove the last element of the path
+    if(strcmp(token, "..") == 0) {
+        if(strcmp(path, "/") != 0) {
+            char* toRemove = strrchr(path, '/');
+            *toRemove = '\0';
+            toRemove = strrchr(path, '/');
+            *(toRemove + 1) = '\0';
+            printf("buildPath path: %s\n", path);
+        }
+    }
+    // Else, if the token is not ".", add it to the path
+    else if(strcmp(token, ".") != 0) {
+        strcat(path, token);
+        strcat(path, "/");
+    }
+    printf("new path: %s\n", path);
+    return path;
+}
+
+
 /**
  * @brief Parses a path given to it, filling the struct pathInfo buffer passed
  * to it.
@@ -158,116 +200,88 @@ int parsePath(struct pathInfo* buf, const char* path) {
     dirEnt_t* curDir; // Current directory we are looking in
     char* pathCpy = malloc(strlen(path) + 1);
     strcpy(pathCpy, path);
-    printf("pathCpy: %s\nlen: %ld\n", pathCpy, strlen(pathCpy));
+
+    char absPath[MAX_PATH] = "\0";
+    //printf("pathCpy: %s\nlen: %ld\n", pathCpy, strlen(pathCpy));
 
     // If path begins with "/" it is an absolute path, begin at root directory
     if(path[0] == '/') {
-        printf("parse path starting at root\n");
+        //printf("parse path starting at root\n");
+        strcpy(absPath, "/\0");
         curDir = vcb->root;
     }
     // Otherwise, it is a relative path, begin at current working directory
     else {
-        printf("parse path starting at cwd\n");
+        //printf("parse path starting at cwd\n");
+        strcpy(absPath, vcb->cwdName);
         curDir = vcb->cwd;
     }
 
-    enum fType status; // has values of DNE, File, or Dir
+    enum fType status = DNE; // has values of DNE, File, or Dir
     char* token; // Token returned by strtok
     int index; // Index in directory
-    char absPath[MAX_PATH] = "/\0";
+    
 
     // Tokenize with strtok
     token = strtok(pathCpy, "/");
     dirEnt_t* prevDir = NULL;
-    dirEnt_t* nextDir = malloc(vcb->dirLen * sizeof(*nextDir));
+    dirEnt_t* nextDir = malloc(DIR_BLOCKS * vcb->blockSize);
 
     // Loop through all tokens
     while(token != NULL) {
+        printf("token: %s\n", token);
         // Re-set staus each loop
         status = DNE;
         // Search the loaded directory for a filename matching the token
         index = searchDir(curDir, token);
-        printf("searchDir: %d\n", index);
-        strcat(absPath, token);
-        strcat(absPath, "/");
+//      printf("seaching in %lu\n", curDir[0].location);
+//      printf("searchDir: %d\n", index);
+        
         if(index != -1) {
             // If the found entry is a directory, load it
             if(isDir(curDir, index)) {
-                printf("loading dir...\n");
                 status = Dir;
+//              printf("loading dir: %s\n", token);
                 int ret = loadDir(nextDir, curDir[index].location);
                 if(ret != 0) {
                     return -1;
                 }
+                buildPath(absPath, token);
             }
             else {
                 status = File;
             }
         }
 
+
         // Get next token
         token = strtok(NULL, "/");
-        printf("token: %s\n", token);
-        // Free prevDir if it has been malloc'd and is not one of the vcb dirs
-        if(prevDir && prevDir != vcb->root && prevDir != vcb->cwd) {
-            free(prevDir);
-            prevDir = NULL;
-        }
-
-        // Handle cases when we are not at the end of the specified path
-        if(token != NULL) {
-            // If we found a directory, update prevDir and curDir
-            if(status == Dir) {
-                prevDir = curDir;
-                curDir = nextDir;
-            }
-            // Otherwise, the path is invalid. Clean-up and return negative value
-            else {
-                printf("invalid path\n");
-                // Make sure not to free directories stored in the vcb
-                if(curDir && curDir != vcb->root && curDir != vcb->cwd) {
-                    free(curDir);
-                    curDir = NULL;
-                }
-                if(nextDir && nextDir != vcb->root && nextDir != vcb->cwd) {
-                    free(nextDir);
-                    nextDir = NULL;
-                }
-                free(pathCpy);
-                
-                return -1;
-            } 
-        }
+        
     }
-
+    buildPath(absPath, "..");
     buf->lastElem = status;
     buf->index = index;
     buf->parent = curDir;
-    buf->parentLoc = curDir[0].location;
+    buf->parentLoc = curDir[1].location;
     strcpy(buf->absPath, absPath);
     
+    //printf("exiting: freeing next dir\n");
     if(nextDir) {
-        if(nextDir != vcb->root && nextDir != vcb->cwd) {
+        if(nextDir != curDir && nextDir != vcb->root && nextDir != vcb->cwd) {
             free(nextDir);
             nextDir = NULL;
         }
     }
-    free(pathCpy);
-    pathCpy = NULL;
-    printf("absPath: %s\n", absPath);
+    //printf("exiting: freeing pathCpy\n");
+    if(pathCpy) {
+        free(pathCpy);
+        pathCpy = NULL;
+    }
+    
+    //printf("absPath: %s\n", absPath);
     return 0;
 }
 
-
-fdDir* fs_opendir(const char *name) {
-    dirEnt_t* curDir;
-    if(name[0] == '/') {
-        curDir = vcb->root;
-    }
-
-    fdDir* dirp = malloc(sizeof(*dirp));
-
-}
 
 // Returns index of next free directory entry or -1 if none are free
 int getFreeDirEnt(dirEnt_t* dir) {
@@ -282,6 +296,7 @@ int getFreeDirEnt(dirEnt_t* dir) {
     return ret;
 }
 
+
 int fs_mkdir(const char* pathname, mode_t mode) {
     struct pathInfo info;
     int ret;
@@ -290,6 +305,7 @@ int fs_mkdir(const char* pathname, mode_t mode) {
     if(parsePath(&info, pathname) == 0) {
         // If the last element in the path already exists, set return val to 0
         if(info.lastElem != DNE) {
+            printf("File or Directory already exists\n");
             ret = 0;
         }
         // Otherwise, get the next free directory entry
@@ -306,7 +322,7 @@ int fs_mkdir(const char* pathname, mode_t mode) {
                 if(dir == NULL) {
                     ret = 0;
                 }
-                // Set the parent entry to the new dir
+                // Set the parent's entry to the new dir
                 else {
                     info.parent[index] = *dir;
 
@@ -317,7 +333,9 @@ int fs_mkdir(const char* pathname, mode_t mode) {
                         printf("name: %s\n", name);
                     }
                     else {
-                        name = pathname;
+                        char temp[strlen(pathname) + 1];
+                        strcpy(temp, pathname);
+                        name = temp;
                     }
                     strcpy(info.parent[index].name, name);
 
@@ -328,22 +346,118 @@ int fs_mkdir(const char* pathname, mode_t mode) {
             }
         
         }
-        if(info.parent && info.parent != vcb->root && info.parent != vcb->cwd) {
-            free(info.parent);
-            info.parent = NULL;
+        if(info.parent) {
+            if(info.parent != vcb->root && info.parent != vcb->cwd) {
+              printf("mkdir: freeing parent\n");
+                free(info.parent);
+                info.parent = NULL;
+            }
         }
     }
 
     return ret;
 }
 
+int fs_isDir(char* path) {
+    struct pathInfo info;
+    int ret = 0;
+    if(parsePath(&info, path) == 0) {
+        if(info.lastElem == Dir) {
+            ret = 1;
+        }
+    }
+    if(info.parent) {
+        if(info.parent != vcb->cwd && info.parent != vcb->root) {
+            free(info.parent);
+        }
+    }
+
+    return ret;
+}
+
+int fs_isFile(char* path) {
+    struct pathInfo info;
+    int ret = 0;
+    if(parsePath(&info, path) == 0) {
+        if(info.lastElem == File) {
+            ret = 1;
+        }
+    }
+    if(info.parent) {
+        if(info.parent != vcb->cwd && info.parent != vcb->root) {
+            free(info.parent);
+        }
+    }
+
+    return ret;
+}
 
 char* fs_getcwd(char* buf, size_t size) {
     return strncpy(buf, vcb->cwdName, size);
 }
 
-// int fs_setcwd(char* buf) {
-//     if(fs_isDir(buf)) {
+int fs_setcwd(char* buf) {
+    struct pathInfo info;
+    int ret = -1;
+    if(parsePath(&info, buf) == 0) {
+        if(info.lastElem == Dir) {
+            dirEnt_t* dir = malloc(DIR_BLOCKS * vcb->blockSize);
+            printf("setcwd: loading %u\n", info.index);
+            printf("cwd: info.parent[index] location: %lu\n", info.parent[info.index].location);
+            int chk = loadDir(dir, info.parent[info.index].location);
+            if(chk == 0) {
+                printf("setcwd: index: %d\n", info.index);
+                char* path = malloc(MAX_PATH);
+                strcpy(path, info.absPath);
+                printf("absPath: %s\n", info.absPath);
+                buildPath(path, info.parent[info.index].name);
+                //strcat(path, info.parent[info.index].name);
+                //strcat(path, "/");
+                strcpy(vcb->cwdName, path);
+                free(path);
+                printf("cwd: parentLoc: %lu\n", vcb->cwd[1].location);
 
-//     }
-// }
+                printf("cwd: dirloc: %lu\n", dir[0].location);
+                if(vcb->cwd != vcb->root && vcb->cwd != info.parent) {
+                    free(vcb->cwd);
+                }
+                printf("cwd: parentLoc: %lu\n", vcb->cwd[1].location);
+                vcb->cwd = dir;
+                printf("cwd=== %lu\n\n", vcb->cwd[0].location);
+                ret = 0;
+            }
+            else {
+                printf("setcwd: freeing dir\n");
+                free(dir);
+            }
+        }
+    }
+    if(info.parent) {
+        printf("setcwd: freeing parent\n");
+        if(info.parent != vcb->cwd && info.parent != vcb->root) {
+            free(info.parent);
+        }
+    }
+    printf("cwd loc: %lu\n", vcb->cwd[0].location);
+
+    return ret;
+}
+
+int fs_delete(char* filename) {
+    struct pathInfo info;
+    int ret = 0;
+    if(parsePath(&info, filename) == 0) {
+        if(info.lastElem == File) {
+            deleteDirEnt(info.parent, info.index);
+            ret = 1;
+        }
+    }
+    if(info.parent) {
+        if(info.parent != vcb->cwd && info.parent != vcb->root) {
+            free(info.parent);
+        }
+    }
+
+    return ret;
+}
+
