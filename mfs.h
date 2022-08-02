@@ -73,8 +73,7 @@ typedef struct
 	unsigned short	dirEntryPosition;	/*which directory entry position, like file pos */
 	uint64_t	directoryStartLocation;		/*Starting LBA of directory */
 	dirEnt_t* dirPtr;
-	//int maxEntries;
-	struct fs_diriteminfo diInfo;
+	struct fs_diriteminfo* diInfo;
 	} fdDir;
 
 // Key directory functions
