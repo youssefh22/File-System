@@ -99,7 +99,7 @@ struct fs_stat
 	off_t     st_size;    		/* total size, in bytes */
 	blksize_t st_blksize; 		/* blocksize for file system I/O */
 	blkcnt_t  st_blocks;  		/* number of 512B blocks allocated */
-	time_t    st_accesstime;   	/* time of last access */
+	// time_t    st_accesstime;   	/* time of last access */
 	time_t    st_modtime;   	/* time of last modification */
 	time_t    st_createtime;   	/* time of last status change */
 	
