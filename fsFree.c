@@ -154,5 +154,7 @@ int freeBlocks(uint64_t addr, int count) {
 		unsetBit(&vcb->freeMap[index], bit);
 	}
 
+	LBAwrite(vcb->freeMap, vcb->mapBlocks, vcb->freeMapAddr);
+
 	return 1;
 }
