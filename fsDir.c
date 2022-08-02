@@ -461,3 +461,54 @@ int fs_delete(char* filename) {
     return ret;
 }
 
+fdDir* fs_opendir(const char* name) {
+    struct pathInfo info;
+    fdDir* dirp;
+    if(parsePath(&info, name) == 0) {
+        fdDir* dirp = malloc(sizeof(*dirp));
+        dirp->dirPtr = malloc(DIR_BLOCKS * vcb->blockSize);
+        loadDir(dirp->dirPtr, info.parent[info.index].location);
+        dirp->directoryStartLocation = dirp->dirPtr[0].location;
+        dirp->dirEntryPosition = 0;
+        dirp->d_reclen = DIR_BLOCKS * vcb->blockSize;
+        dirp->diInfo = malloc(sizeof(*dirp->diInfo));
+    }
+    else {
+        dirp = NULL;
+    }
+
+    return dirp;
+}
+
+struct fs_diriteminfo* fs_readdir(fdDir* dirp) {
+    strcpy(dirp->diInfo->d_name, dirp->dirPtr->name);
+    dirp->diInfo->d_reclen = dirp->dirPtr->size;
+    if(dirp->dirPtr->attr & DIR_MASK) {
+        dirp->diInfo->fileType = 'D';
+    }
+    else {
+        dirp->diInfo->fileType = 'F';
+    }
+
+    return dirp->diInfo;
+}
+
+int fs_closedir(fdDir* dirp) {
+    
+}
+
+int fs_rmdir(const char* pathname) {
+    struct pathInfo info;
+    int ret = 0;
+
+    if(parsePath(&info, pathname) == 0) {
+        dirEnt_t* dir = malloc(DIR_BLOCKS * vcb->blockSize);
+        loadDir(dir, info.parent[info.index].location);
+
+        for(int i = 0; i < vcb->dirLen; i++) {
+
+        }
+    }
+
+}
+
