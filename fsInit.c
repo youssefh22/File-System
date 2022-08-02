@@ -169,7 +169,8 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 		return err;
 	}
 
-	vcb->cwdName = "/";
+	vcb->cwdName = malloc(MAX_PATH);
+	strncpy(vcb->cwdName, "/", MAX_PATH);
 	return 0;
 	}
 	
@@ -179,6 +180,7 @@ void exitFileSystem ()
 	printf ("System exiting\n");
 	free(vcb->root);
 	free(vcb->cwd);
+	free(vcb->cwdName);
 	free(vcb->freeMap);
 	free(vcb);
 	}
