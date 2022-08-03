@@ -73,6 +73,9 @@ typedef struct
 	unsigned short	dirEntryPosition;	/*which directory entry position, like file pos */
 	uint64_t	directoryStartLocation;		/*Starting LBA of directory */
 	dirEnt_t* dirPtr;
+	// unsigned short di_reclen;
+	// unsigned char fileType;
+	// char di_name[256];
 	struct fs_diriteminfo* diInfo;
 	} fdDir;
 

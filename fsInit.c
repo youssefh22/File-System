@@ -112,14 +112,14 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 
 		// Using a byte array for freeMap, freeLen will be number of bytes
 		vcb->freeLen = (numberOfBlocks + 7) / 8;
-		printf("vcb->freeLen: %lu\n", vcb->freeLen);
+//		printf("vcb->freeLen: %lu\n", vcb->freeLen);
 
 		// Calculate mapBlocks, the number of blocks the freeMap needs
 		vcb->mapBlocks = (vcb->freeLen + blockSize - 1) / blockSize;
-		printf("vcb->mapBlocks: %u\n", vcb->mapBlocks);
+//		printf("vcb->mapBlocks: %u\n", vcb->mapBlocks);
 
 		vcb->dirLen = DIR_BLOCKS * blockSize / sizeof(dirEnt_t);
-		printf("vcb->dirLen: %d\n", vcb->dirLen);
+//		printf("vcb->dirLen: %d\n", vcb->dirLen);
 
 		// Initialize the freeSpace now that the above values have been set
 		int ret = initFreeSpace();
@@ -131,7 +131,7 @@ int initFileSystem (uint64_t numberOfBlocks, uint64_t blockSize)
 
 		// The root directory will be located after the freeMap
 		vcb->rootAddr = vcb->freeMapAddr + vcb->mapBlocks;
-		printf("vcb->rootAddr: %lu\n", vcb->rootAddr);
+//		printf("vcb->rootAddr: %lu\n", vcb->rootAddr);
 
 		// Will use 1 block for the root directory for now
 		vcb->rootSize = DIR_BLOCKS;
@@ -240,64 +240,3 @@ int initFreeSpace() {
 
 	return 1;
 }
-
-/**
- * @brief Initializes the root directory, sets the '.' and '..' entries and writes
- * the root directory to disk. Assigns the root and cwd pointers in the VCB to
- * the newly created root directory.
- * 
- * @return int
- * 	1 if successful
- * 	-1 if failed
- */
-/*
-int initRoot() {
-	uint64_t location = allocBlocks(DIR_BLOCKS);
-	// Allocate memory for direcotry entries
-	dirEnt_t* root = malloc(sizeof(*root) * sizeof(*bitV));
-
-	// Initialize directory entry elements
-	for(int i = 0; i < 8; i++) {
-		root[i].dateTimeCr = 0;
-		root[i].dateTimeMd = 0;
-		root[i].location = 0;
-		root[i].size = 0;
-		strncpy(root[i].name, "", 35);
-		root[i].attr = 0;
-	}
-
-	// Initialize '.' and '..' entries
-	strncpy(root[0].name, ".", 35);
-	root[0].attr |= ROOT_MASK;
-	root[0].size = 2;
-
-	strncpy(root[1].name, "..", 35);
-	root[1].attr |= ROOT_MASK;
-	root[1].size = 2;
-
-
-	// Request free block(s)
-	uint64_t location = allocBlocks(DIR_BLOCKS);
-	if(location == 0) {
-		printf("ERROR: allocBlocks()\n");
-		return -1;
-	}
-
-	// Set location for '.' and '..'
-	root[0].location = location;
-	root[1].location = location;
-
-	// Write the root directory to disk
-	int ret = LBAwrite(root, 1, location);
-	if(ret != 1) {
-		err = errno;
-		perror("initRoot()");
-		return err;
-	}
-
-	// Set root and cwd pointers in the VCB to root
-	vcb->root = root;
-
-	return 1;
-}
-*/
