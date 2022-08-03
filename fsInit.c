@@ -1,9 +1,9 @@
 /**************************************************************
-* Class:  CSC-415-0# Fall 2021
-* Names: 
-* Student IDs:
-* GitHub Name:
-* Group Name:
+* Class:  CSC-415-01 - Summer 2022
+* Names: Alexander del Rio, Youssef Hammoud, Joshua Alfaro, Aneida Blanco Palacio
+* Student IDs: 920764010, 921558141, 918551821, 918466281
+* GitHub Name: ajdelrio
+* Group Name: Group A
 * Project: Basic File System
 *
 * File: fsInit.c
