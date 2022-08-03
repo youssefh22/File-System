@@ -44,6 +44,7 @@ typedef u_int8_t uint8_t;
 #define MAX_PATH 256
 #define FULL_BYTE 255
 
+
 typedef struct {	// Directory Entry Structure
 	time_t 		dateTimeCr;		// Date and Time the file was created
 	time_t 		dateTimeMd;		// Date and Time the file was last modified
@@ -52,6 +53,8 @@ typedef struct {	// Directory Entry Structure
 	char 		name[35];		// Name and extension (if applicable)
 	uint8_t 	attr;			// Attributes
 } dirEnt_t;
+
+
 // This structure is returned by fs_readdir to provide the caller with information
 // about each file as it iterates through a directory
 struct fs_diriteminfo

@@ -1,9 +1,9 @@
 /**************************************************************
-* Class:  CSC-415-0# Fall 2021
-* Names: 
-* Student IDs:
-* GitHub Name:
-* Group Name:
+* Class:  CSC-415-01 - Summer 2022
+* Names: Alexander del Rio, Youssef Hammoud, Joshua Alfaro, Aneida Blanco Palacio
+* Student IDs: 920764010, 921558141, 918551821, 918466281
+* GitHub Name: ajdelrio
+* Group Name: Group A
 * Project: Basic File System
 *
 * File: b_io.c
@@ -27,9 +27,13 @@
 typedef struct b_fcb
 	{
 	/** TODO add al the information you need in the file control block **/
+	file *fi;
 	char * buf;		//holds the open file buffer
 	int index;		//holds the current position in the buffer
 	int buflen;		//holds how many valid bytes are in the buffer
+	int totalRead;
+	int readPos;
+	int newChunk;
 	} b_fcb;
 	
 b_fcb fcbArray[MAXFCBS];
@@ -76,8 +80,27 @@ b_io_fd b_open (char * filename, int flags)
 	
 	returnFd = b_getFCB();				// get our own file descriptor
 										// check for error - all used FCB's
-	
-	return (returnFd);						// all set
+
+	if (returnFd == NULL) {
+		return -1;
+	}
+
+	if( returnFd != -1) // b_getFCB did not fail
+	{
+        fcbArray[returnFd].fi = filename; // store pointer to filename in fi
+		if (fcbArray[returnFd].fi == NULL) // check if file not found found
+		{
+			printf("Cannot find specified file.");
+			return -1; // negative number because of error
+		}
+    	}
+    	fcbArray[returnFd].buf = malloc(B_CHUNK_SIZE);	// allocate 512 byte buffer
+    	fcbArray[returnFd].index = 0; // set index to 0
+	fcbArray[returnFd].buflen = B_CHUNK_SIZE;
+	fcbArray[returnFd].totalRead = 0;
+	LBAread(fcbArray[returnFd].buf, 1, fcbArray[returnFd].readPos);
+
+    	return (returnFd); // return file descriptor						// all set
 	}
 
 
@@ -91,9 +114,22 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 		{
 		return (-1); 					//invalid file descriptor
 		}
-		
-		
-	return (0); //Change this
+	if (whence & SEEK_SET)
+	{
+		fcbArray[fd].index = offset;
+	}
+
+	if (whence & SEEK_CUR)
+	{
+		fcbArray[fd].index = fcbArray[fd].index + offset;
+	}
+
+	if (whence & SEEK_END)
+	{
+		fcbArray[fd].index = fcbArray[fd].fi->size / B_CHUNK_SIZE;
+	}
+
+	return (fcbArray[fd].index); //
 	}
 
 
@@ -101,6 +137,12 @@ int b_seek (b_io_fd fd, off_t offset, int whence)
 // Interface to write function	
 int b_write (b_io_fd fd, char * buffer, int count)
 	{
+	int part1, part2;
+	int writeBytes;
+	int copy;
+	int remain;
+	int next;
+
 	if (startup == 0) b_init();  //Initialize our system
 
 	// check that fd is between 0 and (MAXFCBS-1)
@@ -108,9 +150,54 @@ int b_write (b_io_fd fd, char * buffer, int count)
 		{
 		return (-1); 					//invalid file descriptor
 		}
+
+	if (fcbArray[fd].fi == NULL)
+	{
+		return -1;
+	}
 		
-		
-	return (0); //Change this
+	if (count > B_CHUNK_SIZE)
+	{
+		copy = B_CHUNK_SIZE - fcbArray[fd].buflen;
+		memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer, copy);
+		LBAwrite(fcbArray[fd].fi, fcbArray[fd].buf, B_CHUNK_SIZE);
+
+		next = (count - copy) / B_CHUNK_SIZE;													   //next writing part
+		remain = (count - copy) - write(fcbArray[fd].fi, buffer + copy, next * B_CHUNK_SIZE);
+
+		memcpy(fcbArray[fd].buf, buffer + (count - remain), remain);
+		fcbArray[fd].buflen = fcbArray[fd].index;
+		fcbArray[fd].index = remain;
+		writeBytes = copy + remain;
+	}
+	else
+	{
+		if ((fcbArray[fd].buflen + count) > B_CHUNK_SIZE)
+		{
+			part1 = B_CHUNK_SIZE - fcbArray[fd].buflen;
+			memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer, part1);
+			fcbArray[fd].buflen += part1;
+			fcbArray[fd].index += part1;
+			part2 = count - part1;
+
+			if (fcbArray[fd].buflen == B_CHUNK_SIZE)
+			{
+				LBAwrite(fcbArray[fd].fi, fcbArray[fd].buf, B_CHUNK_SIZE);
+			}
+			memcpy(fcbArray[fd].buf, buffer + part1, part2);
+			fcbArray[fd].buflen = fcbArray[fd].index = part2;
+			writeBytes = part1 + part2;
+		}
+		else
+		{
+			memcpy(fcbArray[fd].buf + fcbArray[fd].index, buffer, count);
+			fcbArray[fd].index += count;
+			fcbArray[fd].buflen += count;
+			writeBytes = count;
+		}
+	}
+
+	return writeBytes;
 	}
 
 
@@ -149,7 +236,10 @@ int b_read (b_io_fd fd, char * buffer, int count)
 	}
 	
 // Interface to Close the file	
+//Release the resources
 int b_close (b_io_fd fd)
 	{
-
+	fcbArray[fd].fi = NULL;
+	free(fcbArray[fd].buffer);
+	fcbArray[fd].buffer = NULL;
 	}

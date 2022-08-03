@@ -1,3 +1,17 @@
+/**************************************************************
+* Class:  CSC-415-01 - Summer 2022
+* Names: Alexander del Rio, Youssef Hammoud, Joshua Alfaro, Aneida Blanco Palacio
+* Student IDs: 920764010, 921558141, 918551821, 918466281
+* GitHub Name: ajdelrio
+* Group Name: Group A
+* Project: Basic File System
+*
+* File: fsFree.c
+*
+* Description: Free Space management functions to handle our bitvector
+*
+**************************************************************/
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
