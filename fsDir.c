@@ -297,7 +297,7 @@ int fs_mkdir(const char* pathname, mode_t mode) {
     // call parsePath and check return
     if(parsePath(&info, pathname) == 0) {
 //        printf("md: after parse\n");
-        printf("mkdir: parse index = %d\n", info.index);
+//        printf("mkdir: parse index = %d\n", info.index);
         // If the last element in the path already exists, set return val to 0
         if(info.lastElem != DNE) {
             printf("File or Directory already exists\n");
@@ -306,7 +306,7 @@ int fs_mkdir(const char* pathname, mode_t mode) {
         // Otherwise, get the next free directory entry
         else {
             int index = getFreeDirEnt(info.parent);
-            printf("getFreeDirent: %d\n", index);
+//            printf("getFreeDirent: %d\n", index);
 
             if(index == -1) {
                 ret = 0;
@@ -389,7 +389,7 @@ int fs_isFile(char* path) {
 }
 
 char* fs_getcwd(char* buf, size_t size) {
-    printf("cwd block: %lu\n", vcb->cwd[0].location);
+//    printf("cwd block: %lu\n", vcb->cwd[0].location);
     return strncpy(buf, vcb->cwdName, size);
 }
 
