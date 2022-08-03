@@ -38,7 +38,7 @@ extern int err;
 dirEnt_t* createDir(uint64_t parentAddr) {
     // Request blocks, return NULL if allocBlocks fails
     uint64_t dirLoc = allocBlocks(DIR_BLOCKS);
-    printf("createDir: dirLoc = %lu\n", dirLoc);
+//    printf("createDir: dirLoc = %lu\n", dirLoc);
     if(dirLoc == 0) {
         freeBlocks(parentAddr, DIR_BLOCKS);
         return NULL;
